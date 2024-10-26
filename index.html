@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestionale AlinSystem</title>
+    <link rel="icon" type="image/png" href="https://github.com/RBcomputer/Logo/blob/main/logo%20alin.PNG?raw=true" />
+    <link rel="apple-touch-icon" href="https://github.com/RBcomputer/Logo/blob/main/logo%20alin.PNG?raw=true" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-storage-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            if (isMobile()) {
+                document.body.classList.add('mobile');
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <div class="mobile-header">
+        <button id="menuToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <h1>Gestione Interventi</h1>
+    </div>
+
+    <div id="loginPage" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <div class="login-logo"></div>
+                <h2>Accesso Gestionale Clienti</h2>
+            </div>
+            <p class="login-welcome">
+                Benvenuto! Inserisci le tue credenziali per accedere.
+            </p>
+            <form id="loginForm">
+                <div class="input-group">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" placeholder="Email" required />
+                </div>
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" placeholder="Password" required />
+                </div>
+                <button type="submit" class="login-button">Accedi</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <h1>AlinSystem</h1>
+        <div class="nav-buttons">
+            <button id="btnNuovoCliente">
+                <i class="fas fa-user-plus"></i> Intervento
+            </button>
+            <button id="btnInterventi">
+                <i class="fas fa-calendar-plus" style="color: #e74c3c"></i> Pianifica
+                <span class="notifica-counter" id="interventiCounter">0</span>
+            </button>
+            <button id="btnInterventiInCorso">
+                <i class="fas fa-hard-hat" style="color: #f39c12"></i> In corso
+                <span class="notifica-counter" id="interventiInCorsoCounter">0</span>
+            </button>
+            <button id="btnInterventiCompletati">
+                <i class="fas fa-check-circle" style="color: #2ecc71"></i> Completati
+                <span class="notifica-counter" id="interventiCompletatiCounter">0</span>
+            </button>
+            <button id="btnRubrica">
+                <i class="fas fa-address-book"></i> Rubrica
+            </button>
+            <button id="btnCalendario">
+                <i class="fas fa-calendar-alt"></i> Calendario
+            </button>
+            <button id="btnCestino">
+                <i class="fas fa-trash"></i> Cestino
+                <span class="notifica-counter" id="cestinoCounter">0</span>
+            </button>
+            <button id="btnNote">
+                <i class="fas fa-sticky-note" style="color: #ffd700"></i> Note
+            </button>
+            <button id="btnLogout">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="container" id="nuovoClienteForm">
+            <h2>Nuovo Intervento</h2>
+            <form id="interventoForm">
+                <input type="text" id="cliente" placeholder="Cliente" required />
+                <input type="text" id="indirizzo" placeholder="Indirizzo" />
+                <input type="text" id="titolo" placeholder="Titolo" />
+                <textarea id="tipoIntervento" placeholder="Tipo di intervento"></textarea>
+                <div class="priorita-container">
+                    <label for="priorita">Priorità:</label>
+                    <select id="priorita">
+                        <option value="">Nessuna priorità</option>
+                        <option value="#FF0000">Alta (Rosso)</option>
+                        <option value="#FFA500">Media (Arancione)</option>
+                        <option value="#90EE90">Bassa (Verde)</option>
+                    </select>
+                </div>
+                <button type="submit">Salva</button>
+            </form>
+        </div>
+
+        <div class="container" id="listaClienti" style="display: none">
+            <h2>Interventi da pianificare</h2>
+            <div class="search-container">
+                <input type="text" id="searchPianifica" placeholder="Cerca interventi da pianificare..." />
+            </div>
+            <div class="sort-container">
+                <label for="sortPianifica">Ordina per:</label>
+                <select id="sortPianifica">
+                    <option value="alfabetico">Ordine alfabetico</option>
+                    <option value="priorita">Priorità</option>
+                </select>
+            </div>
+            <div class="table-responsive">
+                <table id="tabellaClienti">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Indirizzo</th>
+                            <th>Titolo</th>
+                            <th>Tipo Intervento</th>
+                            <th>Azioni e Colore Intervento</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="container" id="interventiInCorso" style="display: none">
+            <h2>Interventi in corso</h2>
+            <div class="search-container">
+                <input type="text" id="searchInCorso" placeholder="Cerca interventi in corso..." />
+            </div>
+            <div class="sort-container">
+                <label for="sortInCorso">Ordina per:</label>
+                <select id="sortInCorso">
+                    <option value="alfabetico">Ordine alfabetico</option>
+                    <option value="priorita">Priorità</option>
+                    <option value="dataCresc">Data crescente</option>
+                    <option value="dataDesc">Data decrescente</option>
+                </select>
+            </div>
+            <div class="table-responsive">
+                <table id="tabellaInterventiInCorso">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Indirizzo</th>
+                            <th>Titolo</th>
+                            <th>Tipo Intervento</th>
+                            <th>Appuntamento</th>
+                            <th>Azioni e Colore Intervento</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="container" id="interventiCompletati" style="display: none">
+            <h2>Interventi completati</h2>
+            <div class="search-container">
+                <input type="text" id="searchCompletati" placeholder="Cerca interventi completati..." />
+            </div>
+            <div class="sort-container">
+                <label for="sortCompletati">Ordina per:</label>
+                <select id="sortCompletati">
+                    <option value="alfabetico">Ordine alfabetico</option>
+                    <option value="priorita">Priorità</option>
+                    <option value="dataCresc">Data crescente</option>
+                    <option value="dataDesc">Data decrescente</option>
+                </select>
+            </div>
+            <div class="table-responsive">
+                <table id="tabellaInterventiCompletati">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Indirizzo</th>
+                            <th>Titolo</th>
+                            <th>Tipo Intervento</th>
+                            <th>Appuntamento</th>
+                            <th>Azioni e Colore Intervento</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="container" id="rubrica" style="display: none">
+            <h2>Rubrica Clienti</h2>
+            <div class="search-container">
+                <input type="text" id="searchRubrica" placeholder="Cerca nella rubrica..." />
+            </div>
+            <div class="table-responsive">
+                <table id="tabellaRubrica">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Indirizzo</th>
+                            <th>Titolo</th>
+                            <th>Azioni e Colore Intervento</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="container" id="cestino" style="display: none">
+            <h2>Cestino</h2>
+            <button id="svuotaCestino">Svuota cestino</button>
+            <div class="table-responsive">
+                <table id="tabellaCestino">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Indirizzo</th>
+                            <th>Titolo</th>
+                            <th>Tipo Intervento</th>
+                            <th>Appuntamento</th>
+                            <th>Azioni e Colore Intervento</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="container" id="listaNote" style="display: none">
+            <h2>Le mie note</h2>
+            <button id="nuovaNota" class="btn-primary">Nuova nota</button>
+            <div class="search-container">
+                <input type="text" id="searchNote" placeholder="Cerca nelle note..." />
+            </div>
+            <div id="elencoNote">
+                <!-- Le note verranno inserite qui dinamicamente -->
+            </div>
+        </div>
+
+        <div class="container" id="calendarioView" style="display: none">
+            <div class="calendario-header">
+                <button id="prevMonth">&lt;</button>
+                <h2 id="meseAnno"></h2>
+                <button id="nextMonth">&gt;</button>
+            </div>
+            <div class="calendario-body">
+                <div id="calendario"></div>
+            </div>
+            <div id="eventiGiorno">
+                <h3 id="dataSelezionata"></h3>
+                <ul id="listaEventiGiorno"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAppuntamento" class="modal">
+        <div class="modal-content">
+            <h2>Pianifica Appuntamento</h2>
+            <form id="formAppuntamento">
+                <input type="date" id="dataAppuntamento" required />
+                <input type="time" id="oraAppuntamento" />
+                <button type="submit">Conferma Appuntamento</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalCollaudo" class="modal">
+        <div class="modal-content modal-collaudo">
+            <button id="chiudiCollaudo" class="close-btn">&times;</button>
+            <h2>Attestazione di Collaudo</h2>
+            <form id="collaudoForm" class="collaudo-form">
+                <div class="form-group">
+                    <label for="dataCollaudo">Data:</label>
+                    <input type="date" id="dataCollaudo" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="indirizzoCliente">Indirizzo:</label>
+                    <input type="text" id="indirizzoCliente" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="capCittaProvinciaCliente">CAP|Città|Provincia:</label>
+                    <input type="text" id="capCittaProvinciaCliente" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="nomeRappresentante">Nome Rappresentante:</label>
+                    <input type="text" id="nomeRappresentante" required />
+                </div>
+
+                <div class="form-group">
+                    <label>Ruolo:</label>
+                    <div class="role-buttons">
+                        <button type="button" class="role-button" data-role="AMMINISTRATORE">
+                            AMMINISTRATORE
+                        </button>
+                        <button type="button" class="role-button" data-role="ALTRO">
+                            ALTRO
+                        </button>
+                        <button type="button" class="role-button" data-role="CONDOMINE INTERNO">
+                            CONDOMINE INTERNO
+                        </button>
+                    </div>
+                    <input type="hidden" id="ruoloSelezionato" name="ruolo" required />
+                </div>
+
+                <div id="condominioInternoDetails" class="form-group" style="display: none">
+                    <label for="dettagliCondomino">Dettagli Condomino:</label>
+                    <input type="text" id="dettagliCondomino" placeholder="Inserisci i dettagli del condomino" />
+                </div>
+
+                <div class="form-group">
+                    <label for="oggettoIntervento">Oggetto dell'intervento:</label>
+                    <textarea id="oggettoIntervento" name="oggettoIntervento" maxlength="250" required rows="1"
+                        style="resize: none; overflow-y: hidden;"></textarea>
+                    <div id="caratteriRimanenti" class="caratteri-counter">Caratteri rimanenti: 250</div>
+                </div>
+
+                <button type="submit" class="submit-button">
+                    Genera Documento di Collaudo
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalFirmaCollaudo" class="modal">
+        <div class="modal-content">
+            <h2>Firma Documento di Collaudo</h2>
+            <div class="collaudo-preview" id="collaudoPreview"></div>
+            <canvas id="areaFirmaCollaudo"></canvas>
+            <button id="confermaFirmaCollaudo">Conferma Firma e Salva</button>
+        </div>
+    </div>
+
+    <div id="modalModifica" class="modal">
+        <div class="modal-content">
+            <h2>Modifica Intervento/Contatto</h2>
+            <form id="formModifica">
+                <label for="modCliente">Cliente:</label>
+                <input type="text" id="modCliente" required />
+
+                <label for="modIndirizzo">Indirizzo:</label>
+                <input type="text" id="modIndirizzo" required />
+                <label for="modTitolo">Titolo:</label>
+                <input type="text" id="modTitolo" required />
+
+                <label for="modTipoIntervento">Tipo di intervento:</label>
+                <textarea id="modTipoIntervento"></textarea>
+
+                <label for="modPriorita">Priorità:</label>
+                <select id="modPriorita">
+                    <option value="">Nessuna priorità</option>
+                    <option value="#FF0000">Alta (Rosso)</option>
+                    <option value="#FFA500">Media (Arancione)</option>
+                    <option value="#90EE90">Bassa (Verde)</option>
+                </select>
+
+                <button type="submit">Salva Modifiche</button>
+                <button type="button" id="annullaModifiche">Annulla</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="modalNuovaNota" class="modal">
+        <div class="modal-content">
+            <h3>Nuova nota</h3>
+            <input type="text" id="titoloNota" placeholder="Titolo della nota" />
+            <textarea id="contenutoNota" placeholder="Contenuto della nota"></textarea>
+            <button id="salvaNota">Salva</button>
+            <button id="annullaNota">Annulla</button>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <div class="copyright">
+        Gestionale Clienti per AlinSystem - Roberto Bonifazi Copyright © 2024
+        v0.19
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
